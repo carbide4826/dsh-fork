@@ -4,7 +4,6 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, globSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, extname, join, normalize, relative, resolve, sep } from 'node:path'
 import ts from 'typescript'
-import { writeModuleGraph } from './gen-module-graph.ts'
 import {
   hasClientDeclaration,
   PACKAGE_DEPENDENCY_POLICY,
@@ -716,10 +715,6 @@ function main(): void {
       const changed = fixPackageDependencies(root, state)
       console.log(`${GATE}: fixed ${String(changed.length)} manifest(s).`)
       refreshPnpmLockfile(root)
-      const graphChanges = writeModuleGraph(root)
-      console.log(
-        `${GATE}: refreshed pnpm-lock.yaml and wrote ${String(graphChanges.length)} module-graph artifact(s).`,
-      )
       state = readPackageDependencyState(root)
     }
   }

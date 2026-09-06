@@ -150,8 +150,6 @@ describe('gate graph validation', () => {
     'node-compat',
     'check-all',
     'hygiene',
-    'doc-sync',
-    'doc-quick',
   ] as const)('constructs and executes preflight for a valid non-empty %s graph', async (mode) => {
     const subject = withPnpmEntrypoint(() => gatesForMode(mode))
     const execute = vi.fn(async (item: Gate) => resultFor(item))
@@ -159,23 +157,10 @@ describe('gate graph validation', () => {
     await expect(runGates(subject, subject.length, execute)).resolves.toHaveLength(subject.length)
   })
 
-  it('keeps the public repository link policy in the documentation gate', () => {
-    const ids = withPnpmEntrypoint(() => gatesForMode('doc-sync').map(subject => subject.id))
+  it('keeps the public repository link policy in the check-all aggregate', () => {
+    const ids = withPnpmEntrypoint(() => gatesForMode('check-all').map(subject => subject.id))
 
     expect(ids).toContain('public-repository-links')
-  })
-
-  it('keeps package-group subsystem ownership in the documentation gate', () => {
-    const ids = withPnpmEntrypoint(() => gatesForMode('doc-sync').map(subject => subject.id))
-
-    expect(ids).toContain('subsystem-pages')
-  })
-
-  it('derives the quick documentation aggregate from marked doc-sync leaves', () => {
-    const full = withPnpmEntrypoint(() => gatesForMode('doc-sync'))
-    const quick = withPnpmEntrypoint(() => gatesForMode('doc-quick'))
-
-    expect(quick).toEqual(full.filter(gate => gate.quick === true))
   })
 
   it('keeps the hygiene aggregate aligned with the package script checks', () => {
@@ -185,21 +170,12 @@ describe('gate graph validation', () => {
       'rescope-vendor', 'publint', 'constraints', 'package-dependencies', 'application-entrypoints',
       'dsh-package-licenses', 'package-invariants', 'built-package-invariants', 'node-next-types',
       'optional-dependency-imports', 'client-packages', 'client-ui-i18n', 'no-bare-dispatcher', 'cordis-config',
-      'runtime-closure', 'vendored-links',
+      'vendored-links',
     ])
     expect(defaultConcurrency('hygiene', ids.length, 8)).toEqual({
       workers: 4,
       source: '8 available CPU(s), hygiene cap 4',
     })
-  })
-
-  it('schedules the longest documentation leaves before short checks', () => {
-    const ids = withPnpmEntrypoint(() => gatesForMode('doc-sync').map(subject => subject.id))
-
-    expect(ids.slice(0, 10)).toEqual([
-      'doc-typecheck', 'docs-site-build', 'doc-graphs', 'markdown-links', 'type-equivalence',
-      'cordis-catalog', 'cordis-inspect-catalog', 'mermaid', 'scoped-events', 'translation-pairing',
-    ])
   })
 
   it('launches a native pnpm entrypoint directly', () => {
@@ -260,7 +236,7 @@ describe('gate graph validation', () => {
   it('keeps native Windows coverage blocking and behind the complete build', () => {
     const complete = withPnpmEntrypoint(() => gatesForMode('ci-windows-complete'))
     const observational = withPnpmEntrypoint(() => gatesForMode('ci-windows-observational'))
-      .filter(gate => gate.id !== 'build' && gate.id !== 'docs-site-build')
+      .filter(gate => gate.id !== 'build')
     const byId = new Map(complete.map(subject => [subject.id, subject]))
 
     expect(byId.get('coverage')?.allowFailure).not.toBe(true)
@@ -290,11 +266,6 @@ describe('gate graph validation', () => {
     expect(builtBin?.after).toEqual(
       observational.filter(gate => gate.id !== 'built-bin-smoke').map(gate => gate.id),
     )
-
-    const completeBuiltBin = withPnpmEntrypoint(() => gatesForMode('ci-windows-complete'))
-      .find(gate => gate.id === 'built-bin-smoke')
-    expect(completeBuiltBin?.after).toContain('windows-site')
-    expect(completeBuiltBin?.after).not.toContain('docs-site-build')
   })
 
   it('applies one configured test, polling, and hook timeout to both coverage gates', () => {
@@ -440,7 +411,6 @@ describe('Typert contract preparation', () => {
     for (const [id, script] of [
       ['typecheck', 'typecheck:contracts-ready'],
       ['lint', 'lint:contracts-ready'],
-      ['doc-typecheck', 'doc-typecheck:contracts-ready'],
     ] as const) {
       expect(subject.find(item => item.id === id)).toMatchObject({
         displayCommand: `pnpm run ${script}`,
@@ -451,7 +421,6 @@ describe('Typert contract preparation', () => {
     expect(subject.find(item => item.id === 'build')?.needs).toEqual([
       'typecheck',
       'lint',
-      'doc-typecheck',
     ])
   })
 
@@ -462,18 +431,8 @@ describe('Typert contract preparation', () => {
       displayCommand: 'pnpm run check:ci:lint:contracts-ready',
       args: ['/private/pnpm.cjs', 'run', 'check:ci:lint:contracts-ready'],
     })
-    expect(subject.find(item => item.id === 'doc-typecheck')).toMatchObject({
-      displayCommand: 'pnpm run doc-typecheck:contracts-ready',
-      args: ['/private/pnpm.cjs', 'run', 'doc-typecheck:contracts-ready'],
-    })
   })
 
-  it('keeps standalone doc sync responsible for preparation', () => {
-    const docTypecheck = withPnpmEntrypoint(() =>
-      gatesForMode('doc-sync').find(item => item.id === 'doc-typecheck'))
-
-    expect(docTypecheck?.displayCommand).toBe('pnpm run doc-typecheck')
-  })
 })
 
 describe('Node compatibility graph', () => {
@@ -505,7 +464,7 @@ describe('Node 24 lane ownership', () => {
     const subject = withPnpmEntrypoint(() => gatesForMode('ci-consumers'))
 
     expect(defaultConcurrency('ci-consumers', subject.length, 4)).toEqual({
-      workers: 11,
+      workers: 10,
       source: 'ci-consumers gate count',
     })
     expect(subject.map(item => item.id)).toEqual([
@@ -517,7 +476,6 @@ describe('Node 24 lane ownership', () => {
       'snapshot',
       'expected-output',
       'web-snapshot',
-      'doc-typecheck',
       'node-next-types',
       'built-bin-smoke',
     ])
@@ -534,7 +492,6 @@ describe('Node 24 lane ownership', () => {
       'snapshot',
       'expected-output',
       'web-snapshot',
-      'doc-typecheck',
       'node-next-types',
       'built-bin-smoke',
     ]) {
@@ -542,9 +499,6 @@ describe('Node 24 lane ownership', () => {
     }
     expect(subject.find(item => item.id === 'snapshot')?.env).toEqual({ DSH_EXAMPLE_MODE: 'lib' })
     expect(subject.find(item => item.id === 'expected-output')?.env).toEqual({ DSH_EXAMPLE_MODE: 'lib' })
-    expect(subject.find(item => item.id === 'doc-typecheck')?.env).toEqual({
-      DSH_DOC_TYPECHECK_USE_BUILD_OUTPUT: '1',
-    })
     expect(subject.find(item => item.id === 'built-bin-smoke')?.args).toEqual(
       expect.arrayContaining([
         'packages/subagent/subagent-codex/tests/loader-composition.e2e.ts',
@@ -560,7 +514,6 @@ describe('Node 24 lane ownership', () => {
         'lint-and-duplication',
         'snapshot',
         'expected-output',
-        'doc-typecheck',
         'node-next-types',
         'built-bin-smoke',
       ],

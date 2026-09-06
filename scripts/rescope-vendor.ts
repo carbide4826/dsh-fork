@@ -101,14 +101,8 @@ const GENERIC_SKIPS: readonly GenericSkip[] = [
   // The preset-roster loop names the `cordis` preset id, not a package.
   { file: 'apps/cli/tests/windows-shell.spec.ts', upstream: ['cordis'] },
   // GROUP_ORDER holds `packages/<group>/` directory names, not package names.
-  { file: 'scripts/gen-module-graph.ts', upstream: ['cordis'] },
-  { file: 'scripts/gen-doc-graphs.ts', upstream: ['cordis'] },
   // `cordis/*` is the extensions event domain, not a package subpath. The
   // generated catalogs and every producer/consumer must preserve that wire id.
-  { file: 'docs/event-producer-consumer.md', upstream: ['cordis'] },
-  { file: 'docs/event-producer-consumer.zh.md', upstream: ['cordis'] },
-  { file: 'docs/subsystems/extensions.md', upstream: ['cordis'] },
-  { file: 'docs/subsystems/extensions.zh.md', upstream: ['cordis'] },
   { file: 'packages/api/remotes/src/remote-events.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-client-runner/src/client/index.ts', upstream: ['cordis'] },
   { file: 'packages/extensions/cordis-client-runner/src/client/runtime.ts', upstream: ['cordis'] },
